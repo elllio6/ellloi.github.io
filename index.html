@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FunnyImageAI — with custom audio clips + Image Library</title>
+
+  <!-- TensorFlow.js + MobileNet -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.2.1/dist/mobilenet.min.js"></script>
+
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; margin:18px; background:#f6f8fb; color:#111; }
+    header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+    h1 { margin:0; font-size:1.1rem; }
+    .badge { background:#e8f0ff; color:#0366d6; padding:6px 10px; border-radius:999px; border:1px solid #dbeafe; }
+    .container { display:flex; gap:16px; flex-wrap:wrap; }
+    .card { background:#fff; border-radius:10px; padding:12px; box-shadow:0 1px 4px rgba(16,24,40,0.06); width:380px; }
+    .wide { flex:1 1 640px; min-width:320px; }
+    label { display:block; font-weight:600; margin:8px 0 6px 0; }
+    input[type="file"], input[type="text"], textarea, select { width:100%; padding:8px; border-radius:8px; border:1px solid #d1d5db; background:#fff; box-sizing:border-box; }
+    textarea { resize:vertical; min-height:90px; }
+    img.preview { width:100%; border-radius:8px; display:block; margin-top:8px; }
+    button { background:#0366d6; color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    button.ghost { background:transparent; color:#0366d6; border:1px solid #0366d6; }
+    button.secondary { background:#6b7280; }
+    .muted { color:#666; font-size:0.9rem; }
+    .pred-list { margin:8px 0; padding:0; list-style:none; }
+    .pred-list li { padding:6px 0; border-bottom:1px dashed #eee; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+    .row { display:flex; gap:8px; }
+    .col { flex:1; }
+    .note { margin-top:10px; font-size:0.9rem; color:#666; }
+    .thumb { width:80px; height:60px; object-fit:cover; border-radius:6px; border:1px solid #eee; margin-right:8px; }
+    .thumb-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+    .label-badge { background:#f1f5f9; padding:4px 8px; border-radius:999px; color:#0f172a; font-weight:600; margin-right:8px; }
+    .img-actions a { margin-left:8px; color:#b91c1c; text-decoration:none; font-size:0.9rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>FunnyImageAI — custom audio clips + Image Library</h1>
+      <div class="muted">Upload clips, create voice templates, upload/manage images, and hear merged playback.</div>
+    </div>
+    <div style="text-align:right">
+      <div class="badge" id="pointsBadge">Points: 0</div>
+      <div class="muted" style="margin-top:6px">Local-only data (browser storage)</div>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card wide" id="mainCard">
+      <label>Upload image (for quick classify & speak)</label>
+      <input id="imageInput" type="file" accept="image/*">
+      <img id="preview" class="preview" alt="Preview" style="display:none">
+
+      <div id="modelStatus" class="muted" style="margin-top:8px">Loading MobileNet model (first load may take a moment)...</div>
+
+      <div id="predictionsArea" style="display:none; margin-top:12px">
+        <label>AI guesses (top 3)</label>
+        <ul id="predList" class="pred-list"></ul>
+
+        <div class="controls">
+          <button id="correctBtn">AI correct</button>
+          <button id="incorrectBtn" class="secondary">AI incorrect (save label)</button>
+          <button id="skipBtn" class="ghost">Skip</button>
+        </div>
+
+        <div id="labelSaveArea" style="display:none; margin-top:10px">
+          <input id="correctLabelInput" placeholder="Enter correct label (exact)">
+          <div class="row" style="margin-top:8px">
+            <button id="saveLabelBtn">Save labeled image</button>
+            <button id="cancelSaveBtn" class="ghost">Cancel</button>
+          </div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Voice script</label>
+          <select id="scriptSelect"></select>
+          <div class="row" style="margin-top:8px">
+            <div class="col"><button id="speakBtn" class="ghost">Speak top guess (merged)</button></div>
+            <div class="col"><button id="previewScriptBtn" class="ghost">Preview script</button></div>
+          </div>
+          <input id="previewLabelInput" placeholder="Label to preview (e.g., cat)" style="margin-top:8px">
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="voiceCard">
+      <h3 style="margin-top:0">Voice Maker & Clips</h3>
+      <div class="muted">Create scripts with tokens: {label} and {clip:name}. Upload clips below and reference them in templates.</div>
+
+      <label>Choose script</label>
+      <select id="vmScriptList"></select>
+
+      <label style="margin-top:8px">Script name</label>
+      <input id="vmName">
+
+      <label style="margin-top:8px">Templates (one per line). Use {label} and {clip:name}</label>
+      <textarea id="vmTemplates"></textarea>
+
+      <label style="margin-top:8px">Speech rate (0.6 - 1.6)</label>
+      <input id="vmRate" type="number" min="0.6" max="1.6" step="0.1" value="1.0">
+
+      <div class="row" style="margin-top:10px">
+        <button id="vmSave">Save script</button>
+        <button id="vmNew" class="ghost">New</button>
+        <button id="vmDelete" class="secondary">Delete</button>
+      </div>
+
+      <hr style="margin:12px 0">
+
+      <label>Upload audio clip (name it and save)</label>
+      <input id="clipFile" type="file" accept="audio/*">
+      <input id="clipName" placeholder="Clip name (e.g., greeting)">
+      <div class="row" style="margin-top:8px">
+        <button id="clipSave">Upload & Save Clip</button>
+        <button id="clipListRefresh" class="ghost">Refresh list</button>
+      </div>
+
+      <label style="margin-top:8px">Saved clips</label>
+      <ul id="clipList" class="muted"></ul>
+
+      <div style="margin-top:10px">
+        <label>Preview template</label>
+        <input id="vmPreviewLabel" placeholder="preview label (e.g., dog)">
+        <div class="row" style="margin-top:8px">
+          <button id="vmPlayPreview" class="ghost">Play preview (merged)</button>
+        </div>
+      </div>
+
+      <div class="note">Clips are stored in your browser localStorage as small data URLs (watch size limits). Playback merges clips and TTS sequentially.</div>
+
+      <div style="margin-top:10px" class="muted">
+        <button id="exportDataset" class="ghost">Export dataset (JSON)</button>
+        <button id="importDataset" class="ghost">Import dataset</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none">
+      </div>
+    </div>
+
+    <div class="card" id="imageLibCard">
+      <h3 style="margin-top:0">Image Library</h3>
+      <div class="muted">Upload images directly into your dataset, view thumbnails, assign labels, and delete images or entire labels.</div>
+
+      <label>Upload image to library</label>
+      <input id="libImageFile" type="file" accept="image/*">
+      <input id="libImageLabel" placeholder="Label to assign (e.g., dog)">
+      <div class="row" style="margin-top:8px">
+        <button id="libSaveImage">Add to Library</button>
+        <button id="libRefresh" class="ghost">Refresh Library</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label>Saved images by label</label>
+        <div id="libContent" style="max-height:420px; overflow:auto; margin-top:8px;"></div>
+      </div>
+
+      <div class="note" style="margin-top:10px">Images are stored in localStorage as data URLs (watch size limits). Use Export/Import to backup.</div>
+    </div>
+  </div>
+
+<script>
+/* Extended client-side app:
+   - MobileNet classification
+   - Voice scripts and clips with merged playback
+   - Image Library: upload/manage images in local dataset (thumbnails, delete)
+*/
+
+// storage keys
+const STORAGE_SCRIPTS = 'funnyai_scripts_v3';
+const STORAGE_CLIPS   = 'funnyai_clips_v3';
+const STORAGE_DATASET = 'funnyai_dataset_v3';
+const STORAGE_POINTS  = 'funnyai_points_v3';
+
+function defaultScripts() {
+  return {
+    "Shy": { templates: ["{clip:greeting} Um... I think this might be {label}.", "Hmm, maybe it's {label}? I'm not very sure."], rate: 1.0 },
+    "Sarcastic": { templates: ["Oh sure, definitely {label}... or not.", "{clip:snark} {label}? Yeah, right."], rate: 0.9 },
+    "Confident": { templates: ["I'm pretty sure this is {label}.", "This looks like {label} to me."], rate: 1.1 }
+  };
+}
+
+function loadScripts(){ try { const raw = localStorage.getItem(STORAGE_SCRIPTS); return raw ? JSON.parse(raw) : defaultScripts(); } catch(e){ return defaultScripts(); } }
+function saveScripts(s){ localStorage.setItem(STORAGE_SCRIPTS, JSON.stringify(s)); }
+function loadClips(){ try { return JSON.parse(localStorage.getItem(STORAGE_CLIPS) || '{}'); } catch(e){ return {}; } }
+function saveClips(c){ localStorage.setItem(STORAGE_CLIPS, JSON.stringify(c)); }
+function loadDataset(){ try { return JSON.parse(localStorage.getItem(STORAGE_DATASET) || '{}'); } catch(e){ return {}; } }
+function saveDataset(d){ localStorage.setItem(STORAGE_DATASET, JSON.stringify(d)); }
+function loadPoints(){ return parseInt(localStorage.getItem(STORAGE_POINTS) || '0', 10); }
+function savePoints(n){ localStorage.setItem(STORAGE_POINTS, String(n)); updatePointsBadge(); }
+function updatePointsBadge(){ document.getElementById('pointsBadge').textContent = 'Points: ' + loadPoints(); }
+
+// TF model
+let net = null;
+async function loadModel(){
+  const st = document.getElementById('modelStatus');
+  st.textContent = 'Loading MobileNet model (from CDN)...';
+  try {
+    net = await mobilenet.load({version:2, alpha:1.0});
+    st.textContent = 'Model loaded.';
+  } catch(e) {
+    st.textContent = 'Model failed to load: ' + e.message;
+    console.error(e);
+  }
+}
+
+function fileToImage(file){ return new Promise((res,rej)=>{ const url = URL.createObjectURL(file); const img = new Image(); img.onload = ()=>{ URL.revokeObjectURL(url); res(img); }; img.onerror = rej; img.src = url; });}
+async function classifyImage(imgEl){ if(!net) throw new Error('Model not loaded'); const results = await net.classify(imgEl, 3); return results.map(r=>[r.className, r.probability]); }
+function applySmallBadness(preds){
+  const commons = ["banana","chair","shoe","cat","dog","tree","car","clock","bottle","cup","box"];
+  let labels = preds.map(p=>[p[0], p[1]]);
+  if(Math.random() < 0.35){
+    const fake = commons[Math.floor(Math.random()*commons.length)];
+    labels[0] = [fake, 0.10 + Math.random()*0.08];
+    for(let i=1;i<labels.length;i++) labels[i][1] = Math.max(0.01, labels[i][1]*0.6);
+  } else {
+    labels = labels.map(([lbl,score])=>[lbl, Math.max(0.05, score * 0.5)]);
+  }
+  if(Math.random() < 0.25 && labels.length>2){ const tmp = labels[1]; labels[1]=labels[2]; labels[2]=tmp; }
+  return labels;
+}
+
+// Playback helpers
+function playClipDataUrl(dataUrl){ return new Promise((res)=>{ const audio = new Audio(dataUrl); audio.onended = ()=> res(); audio.onerror = ()=> res(); audio.play().catch(()=>res()); });}
+function speakText(text, rate=1.0){ return new Promise((res)=>{ if(!('speechSynthesis' in window)){ res(); return; } const utter = new SpeechSynthesisUtterance(text); utter.rate = rate; utter.onend = ()=> res(); utter.onerror = ()=> res(); window.speechSynthesis.cancel(); window.speechSynthesis.speak(utter); });}
+
+// Build play sequence from template and label. Template tokens: {clip:name} and plain text including {label}
+function buildSequenceFromTemplate(template, label, scripts, clips){
+  const seq = []; const clipRegex = /\{clip:([^}]+)\}/g;
+  let lastIndex = 0; let m;
+  while((m = clipRegex.exec(template)) !== null){
+    const before = template.slice(lastIndex, m.index);
+    if(before.trim()){ const t = before.replace(/\{label\}/g, label); seq.push({type:'tts', text:t}); }
+    const clipName = m[1].trim();
+    if(clips[clipName]) seq.push({type:'clip', clip:clipName});
+    else seq.push({type:'tts', text:''});
+    lastIndex = m.index + m[0].length;
+  }
+  const tail = template.slice(lastIndex);
+  if(tail.trim()){ const t2 = tail.replace(/\{label\}/g, label); seq.push({type:'tts', text:t2}); }
+  return seq;
+}
+async function playSequence(seq, rate=1.0){
+  const clips = loadClips();
+  for(const item of seq){
+    if(item.type === 'clip'){ const dataUrl = clips[item.clip]; if(dataUrl) await playClipDataUrl(dataUrl); else await new Promise(r=>setTimeout(r,120)); }
+    else if(item.type === 'tts'){ const t = (item.text||'').trim(); if(t) await speakText(t, rate); else await new Promise(r=>setTimeout(r,80)); }
+  }
+}
+
+// UI wiring
+let currentImageEl = null;
+let lastPredictions = [];
+
+document.addEventListener('DOMContentLoaded', async ()=>{
+  updatePointsBadge();
+  populateScriptSelect();
+  refreshClipList();
+  refreshImageLibrary();
+  loadModel();
+
+  // main classify input
+  document.getElementById('imageInput').addEventListener('change', async (ev)=>{
+    const f = ev.target.files && ev.target.files[0]; if(!f) return;
+    try {
+      const imgEl = await fileToImage(f); currentImageEl = imgEl;
+      const preview = document.getElementById('preview'); preview.src = imgEl.src; preview.style.display = 'block';
+      document.getElementById('predictionsArea').style.display = 'none'; document.getElementById('labelSaveArea').style.display = 'none';
+      document.getElementById('modelStatus').textContent = 'Classifying...';
+      let preds = await classifyImage(imgEl); preds = applySmallBadness(preds); lastPredictions = preds; renderPredictions(preds);
+      document.getElementById('predictionsArea').style.display = 'block'; document.getElementById('modelStatus').textContent = 'Ready';
+      // auto-play merged script
+      const scriptName = document.getElementById('scriptSelect').value; const scripts = loadScripts(); const script = scripts[scriptName] || null;
+      const tpl = script ? script.templates[Math.floor(Math.random()*script.templates.length)] : `I think this is {label}.`;
+      const seq = buildSequenceFromTemplate(tpl, preds[0] ? preds[0][0] : 'something', scripts, loadClips());
+      playSequence(seq, script ? script.rate||1.0 : 1.0);
+    } catch(e){ console.error(e); alert('Failed to load or classify image: ' + e.message); }
+  });
+
+  // interactions
+  document.getElementById('correctBtn').addEventListener('click', ()=>{ savePoints(loadPoints()+1); alert('Point awarded! Total: ' + loadPoints()); });
+
+  document.getElementById('incorrectBtn').addEventListener('click', ()=>{ document.getElementById('labelSaveArea').style.display = 'block'; });
+  document.getElementById('cancelSaveBtn').addEventListener('click', ()=>{ document.getElementById('labelSaveArea').style.display = 'none'; document.getElementById('correctLabelInput').value = ''; });
+  document.getElementById('saveLabelBtn').addEventListener('click', ()=>{ const label = (document.getElementById('correctLabelInput').value||'').trim(); if(!label){ alert('Enter a label'); return; } saveLabeledImage(label); document.getElementById('labelSaveArea').style.display = 'none'; document.getElementById('correctLabelInput').value = ''; refreshImageLibrary(); });
+
+  document.getElementById('speakBtn').addEventListener('click', async ()=>{ if(!lastPredictions || !lastPredictions[0]){ alert('No prediction yet.'); return; } const top = lastPredictions[0][0]; const scriptName = document.getElementById('scriptSelect').value; const scripts = loadScripts(); const script = scripts[scriptName] || null; const tpl = script ? script.templates[Math.floor(Math.random()*script.templates.length)] : `I think this is {label}.`; const seq = buildSequenceFromTemplate(tpl, top, scripts, loadClips()); await playSequence(seq, script ? script.rate||1.0 : 1.0); });
+
+  document.getElementById('previewScriptBtn').addEventListener('click', async ()=>{ const lab = (document.getElementById('previewLabelInput').value||'cat').trim(); const scriptName = document.getElementById('scriptSelect').value; const scripts = loadScripts(); const script = scripts[scriptName] || null; const tpl = script ? script.templates[Math.floor(Math.random()*script.templates.length)] : `I think this is {label}.`; const seq = buildSequenceFromTemplate(tpl, lab, scripts, loadClips()); await playSequence(seq, script ? script.rate||1.0 : 1.0); });
+
+  // Voice Maker UI
+  document.getElementById('vmScriptList').addEventListener('change', loadScriptIntoEditor);
+  document.getElementById('vmSave').addEventListener('click', ()=>{ const name = (document.getElementById('vmName').value||'').trim(); if(!name){ alert('Provide a name'); return; } const raw = document.getElementById('vmTemplates').value||''; const templates = raw.split('\n').map(s=>s.trim()).filter(Boolean); if(templates.length===0){ alert('Add at least one template'); return; } const rate = parseFloat(document.getElementById('vmRate').value)||1.0; const scripts = loadScripts(); scripts[name] = { templates, rate }; saveScripts(scripts); populateScriptSelect(); alert('Saved script: ' + name); });
+  document.getElementById('vmNew').addEventListener('click', ()=>{ document.getElementById('vmName').value = 'NewVoice'; document.getElementById('vmTemplates').value = 'I think this is {label}.'; document.getElementById('vmRate').value = 1.0; });
+  document.getElementById('vmDelete').addEventListener('click', ()=>{ const name = (document.getElementById('vmScriptList').value||'').trim(); if(!name) return; if(!confirm('Delete script "'+name+'"?')) return; const scripts = loadScripts(); delete scripts[name]; saveScripts(scripts); populateScriptSelect(); refreshScriptEditor(); alert('Deleted ' + name); });
+
+  // Clip upload
+  document.getElementById('clipSave').addEventListener('click', ()=>{ const f = document.getElementById('clipFile').files && document.getElementById('clipFile').files[0]; const name = (document.getElementById('clipName').value||'').trim(); if(!f){ alert('Choose an audio file'); return; } if(!name){ alert('Provide clip name'); return; } const reader = new FileReader(); reader.onload = (e)=>{ const dataUrl = e.target.result; const clips = loadClips(); clips[name] = dataUrl; saveClips(clips); refreshClipList(); document.getElementById('clipFile').value=''; document.getElementById('clipName').value=''; alert('Saved clip: ' + name); }; reader.readAsDataURL(f); });
+  document.getElementById('clipListRefresh').addEventListener('click', refreshClipList);
+
+  document.getElementById('vmPlayPreview').addEventListener('click', async ()=>{ const name = (document.getElementById('vmScriptList').value||''); const scripts = loadScripts(); const script = scripts[name] || null; if(!script){ alert('Choose a script'); return; } const previewLabel = (document.getElementById('vmPreviewLabel').value||'cat').trim(); const tpl = script.templates[Math.floor(Math.random()*script.templates.length)]; const seq = buildSequenceFromTemplate(tpl, previewLabel, scripts, loadClips()); await playSequence(seq, script.rate || 1.0); });
+
+  // export/import dataset
+  document.getElementById('exportDataset').addEventListener('click', ()=>{ const ds = loadDataset(); const blob = new Blob([JSON.stringify(ds)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'funnyai_dataset.json'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 5000); });
+  document.getElementById('importDataset').addEventListener('click', ()=> document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (ev)=>{ const f = ev.target.files && ev.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = e => { try { const obj = JSON.parse(e.target.result); const ds = loadDataset(); Object.keys(obj).forEach(k => { if(!ds[k]) ds[k]=[]; ds[k]=ds[k].concat(obj[k]); }); saveDataset(ds); refreshImageLibrary(); alert('Imported dataset (merged)'); } catch(err){ alert('Invalid JSON file'); } }; r.readAsText(f); });
+
+  // Image Library: upload directly into dataset
+  document.getElementById('libSaveImage').addEventListener('click', ()=>{ const f = document.getElementById('libImageFile').files && document.getElementById('libImageFile').files[0]; const label = (document.getElementById('libImageLabel').value||'').trim(); if(!f){ alert('Choose an image file'); return; } if(!label){ alert('Provide a label'); return; } const reader = new FileReader(); reader.onload = e => { const dataUrl = e.target.result; const ds = loadDataset(); if(!ds[label]) ds[label]=[]; ds[label].push({ data: dataUrl, t: Date.now() }); saveDataset(ds); document.getElementById('libImageFile').value=''; document.getElementById('libImageLabel').value=''; refreshImageLibrary(); alert('Added image to library under: ' + label); }; reader.readAsDataURL(f); });
+  document.getElementById('libRefresh').addEventListener('click', refreshImageLibrary);
+});
+
+// render predictions
+function renderPredictions(preds){ const ul = document.getElementById('predList'); ul.innerHTML = ''; preds.forEach((p,i)=>{ const li = document.createElement('li'); li.innerHTML = `<strong>${i+1}. ${escapeHtml(p[0])}</strong> — ${(p[1]*100).toFixed(1)}%`; ul.appendChild(li); }); }
+
+// save labeled image from main classify flow
+function saveLabeledImage(label){
+  if(!currentImageEl){ alert('No image loaded.'); return; }
+  const canvas = document.createElement('canvas'); canvas.width = currentImageEl.naturalWidth; canvas.height = currentImageEl.naturalHeight;
+  const ctx = canvas.getContext('2d'); ctx.drawImage(currentImageEl, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+  const ds = loadDataset(); if(!ds[label]) ds[label]=[]; ds[label].push({ data: dataUrl, t: Date.now() }); saveDataset(ds);
+}
+
+// Clip list UI
+function refreshClipList(){
+  const clips = loadClips(); const list = document.getElementById('clipList'); list.innerHTML = '';
+  Object.keys(clips).sort().forEach(k => {
+    const li = document.createElement('li');
+    li.innerHTML = `${escapeHtml(k)} — <a href="#" data-clip="${k}">Play</a> <a href="#" data-del="${k}" style="color:#b91c1c;margin-left:8px">Delete</a>`;
+    list.appendChild(li);
+  });
+  list.querySelectorAll('[data-clip]').forEach(a => { a.addEventListener('click', (ev)=>{ ev.preventDefault(); const nm = a.getAttribute('data-clip'); const clips = loadClips(); const url = clips[nm]; if(url){ const audio = new Audio(url); audio.play(); } }); });
+  list.querySelectorAll('[data-del]').forEach(a => { a.addEventListener('click', (ev)=>{ ev.preventDefault(); const nm = a.getAttribute('data-del'); if(!confirm('Delete clip '+nm+'?')) return; const clips = loadClips(); delete clips[nm]; saveClips(clips); refreshClipList(); }); });
+}
+
+// Scripts UI
+function populateScriptSelect(){ const scripts = loadScripts(); const sel = document.getElementById('scriptSelect'); const vm = document.getElementById('vmScriptList'); sel.innerHTML=''; vm.innerHTML=''; Object.keys(scripts).sort().forEach(name=>{ const o = document.createElement('option'); o.value = name; o.textContent = name; sel.appendChild(o); const o2 = document.createElement('option'); o2.value = name; o2.textContent = name; vm.appendChild(o2); }); if(!sel.value && sel.options.length) sel.value = sel.options[0].value; if(!vm.value && vm.options.length) vm.value = vm.options[0].value; loadScriptIntoEditor(); }
+function loadScriptIntoEditor(){ const vm = document.getElementById('vmScriptList'); const name = vm.value; const scripts = loadScripts(); if(!name || !scripts[name]) return; const v = scripts[name]; document.getElementById('vmName').value = name; document.getElementById('vmTemplates').value = (v.templates||[]).join('\n'); document.getElementById('vmRate').value = v.rate || 1.0; }
+function refreshScriptEditor(){ populateScriptSelect(); loadScriptIntoEditor(); }
+
+// Image Library UI
+function refreshImageLibrary(){
+  const ds = loadDataset();
+  const cont = document.getElementById('libContent'); cont.innerHTML = '';
+  const labels = Object.keys(ds).sort();
+  if(labels.length === 0){ cont.innerHTML = '<div class="muted">No images saved yet.</div>'; return; }
+  labels.forEach(label => {
+    const items = ds[label];
+    const header = document.createElement('div'); header.style.marginTop='8px';
+    header.innerHTML = `<span class="label-badge">${escapeHtml(label)}</span> <a href="#" data-del-label="${label}" style="color:#b91c1c">Delete label</a> <span style="margin-left:8px" class="muted">(${items.length})</span>`;
+    cont.appendChild(header);
+    const listWrap = document.createElement('div'); listWrap.style.marginTop='6px';
+    items.forEach((it, idx) => {
+      const row = document.createElement('div'); row.className = 'thumb-row';
+      const img = document.createElement('img'); img.src = it.data; img.className = 'thumb';
+      img.title = new Date(it.t).toLocaleString();
+      const meta = document.createElement('div'); meta.style.flex='1';
+      meta.innerHTML = `<div class="muted">${new Date(it.t).toLocaleString()}</div><div class="img-actions"><a href="#" data-del="${label}#${idx}">Delete</a></div>`;
+      row.appendChild(img); row.appendChild(meta); listWrap.appendChild(row);
+    });
+    cont.appendChild(listWrap);
+  });
+
+  // attach delete handlers for individual images and labels
+  cont.querySelectorAll('[data-del]').forEach(a => {
+    a.addEventListener('click', (ev)=> {
+      ev.preventDefault();
+      const key = a.getAttribute('data-del'); // format label#idx
+      const parts = key.split('#'); if(parts.length!==2) return;
+      const label = parts[0], idx = parseInt(parts[1],10);
+      if(!confirm('Delete this image?')) return;
+      const ds2 = loadDataset();
+      if(ds2[label]){ ds2[label].splice(idx,1); if(ds2[label].length===0) delete ds2[label]; saveDataset(ds2); refreshImageLibrary(); }
+    });
+  });
+
+  cont.querySelectorAll('[data-del-label]').forEach(a => {
+    a.addEventListener('click', (ev)=> {
+      ev.preventDefault();
+      const label = a.getAttribute('data-del-label');
+      if(!confirm('Delete entire label "'+label+'"? This will remove all images under it.')) return;
+      const ds2 = loadDataset(); delete ds2[label]; saveDataset(ds2); refreshImageLibrary();
+    });
+  });
+}
+
+// helpers
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ensure script storage exists at first run
+(function ensureDefaults(){ if(!localStorage.getItem(STORAGE_SCRIPTS)) saveScripts(defaultScripts()); })();
+
+</script>
+</body>
+</html>

@@ -3,143 +3,148 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FunnyImageAI — Safari-ready (image + video/audio voice)</title>
+  <title>FunnyImageAI — Stable (image + voice)</title>
 
   <!-- TensorFlow.js + MobileNet -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.9.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.2.1/dist/mobilenet.min.js"></script>
 
   <style>
-    :root{--accent:#0b6df2;--muted:#6b7280;--card:#fff;--bg:#f3f6fb;--radius:10px}
-    html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;background:var(--bg);color:#0f172a}
-    .wrap{max-width:1100px;margin:18px auto;padding:16px}
-    header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:14px}
+    :root{
+      --accent:#0b6df2;
+      --muted:#6b7280;
+      --bg:#f6f9ff;
+      --card:#ffffff;
+      --radius:12px;
+      --pad:14px;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);color:#0f172a}
+    .wrap{max-width:1100px;margin:20px auto;padding:18px;box-sizing:border-box}
+    header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px}
     h1{margin:0;font-size:1.25rem}
-    .muted{color:var(--muted);font-size:0.95rem}
-    .badge{background:#e9f2ff;color:var(--accent);padding:6px 10px;border-radius:999px;font-weight:600;border:1px solid #dbeafe}
-    .grid{display:grid;grid-template-columns:1fr 380px;gap:12px}
-    @media (max-width:980px){.grid{grid-template-columns:1fr}}
-    .card{background:var(--card);border-radius:var(--radius);padding:12px;box-shadow:0 6px 18px rgba(12,18,36,0.06)}
-    .uploader{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #dbeafe;border-radius:10px;padding:14px;background:linear-gradient(180deg,#fff,#fbfdff)}
+    .subtitle{color:var(--muted);font-size:0.95rem}
+    .grid{display:grid;grid-template-columns:1fr 420px;gap:16px}
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} }
+    .card{background:var(--card);border-radius:var(--radius);padding:var(--pad);box-shadow:0 8px 20px rgba(12,18,36,0.06)}
+    .uploader{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #e6eefc;border-radius:10px;padding:18px;background:linear-gradient(180deg,#fff,#fbfdff)}
     .hidden{display:none}
-    .preview{max-width:100%;border-radius:8px;margin-top:10px}
-    label{display:block;font-weight:700;margin-bottom:6px}
-    select,input,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;box-sizing:border-box}
-    textarea{min-height:80px;resize:vertical}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    button{background:var(--accent);color:#fff;border:none;padding:9px 12px;border-radius:8px;cursor:pointer;font-weight:600}
-    button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-    button.secondary{background:#6b7280}
+    img.preview{max-width:100%;border-radius:8px;margin-top:12px;display:block}
+    label{display:block;font-weight:700;margin-bottom:8px}
+    input[type="file"], input[type="text"], input[type="number"], select, textarea { width:100%; padding:10px; border-radius:8px; border:1px solid #e6eefc; background:#fff; box-sizing:border-box }
+    textarea{min-height:90px; resize:vertical}
+    button { display:inline-flex; align-items:center; gap:8px; padding:10px 14px; border-radius:9px; border:0; background:var(--accent); color:#fff; cursor:pointer; font-weight:600 }
+    button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent) }
+    button.secondary { background:#6b7280 }
+    .small{font-size:0.9rem;color:var(--muted)}
     .pred-list{list-style:none;padding:0;margin:12px 0}
     .pred-list li{padding:8px 6px;border-bottom:1px dashed #f1f5f9}
-    .small{font-size:0.9rem;color:var(--muted)}
-    .clip-list li{margin-bottom:6px}
-    .thumb{width:84px;height:64px;object-fit:cover;border-radius:8px;border:1px solid #eef2ff}
-    footer{margin-top:16px;color:var(--muted);text-align:center}
-    .inline{display:inline-flex;gap:8px;align-items:center}
-    .status { margin-left:8px; font-weight:600; color:var(--muted); font-size:0.95rem; }
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .status { font-size:0.95rem; color:var(--muted); margin-left:8px }
+    .top-controls { display:flex; gap:8px; align-items:center }
+    .clip-item { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:6px 0 }
+    footer{margin-top:18px;color:var(--muted);text-align:center}
+    .notice { background:#fff7ed; border:1px solid #fee7c6; padding:8px; border-radius:8px; color:#92400e; margin-top:8px }
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <div>
-        <h1>FunnyImageAI — Safari-ready</h1>
-        <div class="muted">One image for guessing. Use a video or upload an audio clip for voice. Tap "Enable audio" once (Safari needs a gesture).</div>
+        <h1>FunnyImageAI — Stable</h1>
+        <div class="subtitle">One image for guessing. Upload a short audio or a video (audio fallback used) for voice matching.</div>
       </div>
-      <div style="text-align:right">
-        <div class="badge" id="pointsBadge">Points: 0</div>
-        <div style="margin-top:8px">
-          <button id="enableAudioBtn" class="ghost">Enable audio</button>
-          <div id="audioStatus" class="small muted" style="margin-top:6px">Audio: not enabled</div>
-        </div>
+      <div class="top-controls">
+        <div class="small">Points: <span id="pointsBadge">0</span></div>
+        <button id="enableAudioBtn" class="ghost">Enable audio</button>
+        <div id="audioStatus" class="status">Audio: not enabled</div>
       </div>
     </header>
 
     <div class="grid">
-      <!-- Left: main interaction -->
-      <div class="card">
-        <label>Single image (for guessing)</label>
-        <div class="uploader" id="imageUploader">
-          <input id="imageInput" type="file" accept="image/*">
-          <button id="pickImageBtn" class="ghost">Choose Image</button>
-          <div class="small muted" style="margin-top:8px">Or drag & drop an image here</div>
-          <img id="imagePreview" class="preview hidden" alt="Image preview">
-        </div>
-
-        <div id="modelStatus" class="small" style="margin-top:12px">Loading MobileNet model...</div>
-
-        <div id="predictionsArea" class="hidden">
-          <label style="margin-top:10px">AI guesses (top 3)</label>
-          <ul id="predList" class="pred-list"></ul>
-
-          <div class="controls">
-            <button id="correctBtn">AI correct</button>
-            <button id="incorrectBtn" class="secondary">AI incorrect (save label)</button>
-            <button id="speakBtn" class="ghost">Speak top guess</button>
+      <!-- MAIN COLUMN -->
+      <div>
+        <div class="card" id="imageCard">
+          <label>Single image (guess target)</label>
+          <div class="uploader" id="imageUploader" title="Click choose image">
+            <input id="imageInput" type="file" accept="image/*" />
+            <button id="pickImageBtn" class="ghost">Choose image</button>
+            <div class="small" style="margin-top:8px">Drop or choose an image to classify.</div>
+            <img id="imagePreview" class="preview hidden" alt="preview">
           </div>
 
-          <div id="labelSaveArea" class="hidden" style="margin-top:10px">
-            <input id="correctLabelInput" placeholder="Correct label (exact)">
-            <div class="controls" style="margin-top:8px">
-              <button id="saveLabelBtn">Save labeled image</button>
-              <button id="cancelSaveBtn" class="ghost">Cancel</button>
+          <div id="modelStatus" class="small" style="margin-top:12px">Loading model...</div>
+
+          <div id="predictionsArea" class="hidden">
+            <label style="margin-top:12px">AI guesses</label>
+            <ul id="predList" class="pred-list"></ul>
+
+            <div class="controls">
+              <button id="speakBtn" class="ghost">Speak top guess</button>
+              <button id="correctBtn">AI correct</button>
+              <button id="incorrectBtn" class="secondary">AI incorrect (save)</button>
             </div>
-          </div>
 
-          <hr style="margin:12px 0">
+            <div id="labelSaveArea" class="hidden" style="margin-top:10px">
+              <input id="correctLabelInput" placeholder="Correct label (exact)">
+              <div class="controls" style="margin-top:8px">
+                <button id="saveLabelBtn">Save labeled image</button>
+                <button id="cancelSaveBtn" class="ghost">Cancel</button>
+              </div>
+            </div>
 
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button id="startLoopBtn" class="u-btn">Start auto-guesses</button>
-            <button id="stopLoopBtn" class="u-btn ghost" style="display:none">Stop</button>
-            <div style="display:flex;gap:8px;align-items:center">
-              <label class="small muted">Delay (sec)</label>
+            <hr style="margin:12px 0">
+
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <button id="startLoopBtn">Start auto-guesses</button>
+              <button id="stopLoopBtn" class="ghost hidden">Stop</button>
+              <div class="small">Delay</div>
               <input id="minDelay" type="number" min="1" value="2" style="width:70px">
-              <span class="small muted">to</span>
+              <div class="small">to</div>
               <input id="maxDelay" type="number" min="1" value="5" style="width:70px">
+              <div id="loopStatus" class="status">Stopped</div>
             </div>
-            <div class="status" id="loopStatus">Stopped</div>
           </div>
         </div>
 
-        <hr style="margin:14px 0">
-
-        <label>Saved clips</label>
-        <ul id="clipList" class="clip-list small"></ul>
-
-        <div style="margin-top:10px" class="small">Use the Voice Maker (right) to edit templates and include <code>{clip:name}</code> or <code>{label}</code>.</div>
+        <div class="card" style="margin-top:14px">
+          <label>Saved clips</label>
+          <div id="clipContainer" class="small">
+            <!-- clip list appended here -->
+          </div>
+          <div class="small" style="margin-top:8px">Recorded clips / uploaded audio appear above. Use in templates like <code>{clip:name}</code>.</div>
+        </div>
       </div>
 
-      <!-- Right: video/audio, voice maker -->
+      <!-- SIDE PANEL -->
       <div>
-        <div class="card" style="margin-bottom:12px">
-          <label>Video (voice source) — OR upload audio (fallback for Safari)</label>
-          <input id="videoInput" type="file" accept="video/*">
-          <video id="videoPlayer" controls style="width:100%;margin-top:8px;display:none"></video>
-
-          <div style="margin-top:8px" class="small">
-            <div id="audioFallbackArea" class="hidden">
-              <label>Audio fallback (if video extraction not supported)</label>
+        <div class="card">
+          <label>Voice source</label>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div>
+              <div class="small">Upload audio (recommended) — MP3/WAV/AAC</div>
               <input id="audioInput" type="file" accept="audio/*">
-              <div class="small muted">Upload a short MP3/WAV if the browser cannot record from video.</div>
+            </div>
+            <div>
+              <div class="small">Or upload a video and try built-in extraction (may be limited on some Safari versions)</div>
+              <input id="videoInput" type="file" accept="video/*">
+              <video id="videoPlayer" controls class="hidden" style="width:100%;margin-top:8px"></video>
             </div>
 
-            <label style="margin-top:8px">Segment to extract (seconds)</label>
-            <div style="display:flex;gap:8px">
-              <input id="segStart" placeholder="start (s)" type="number" min="0" step="0.1">
-              <input id="segEnd" placeholder="end (s)" type="number" min="0" step="0.1">
+            <div>
+              <div style="display:flex;gap:8px">
+                <input id="segStart" type="number" min="0" step="0.1" placeholder="start (s)">
+                <input id="segEnd" type="number" min="0" step="0.1" placeholder="end (s)">
+              </div>
+              <div class="controls" style="margin-top:8px">
+                <button id="extractClipBtn">Extract & match</button>
+                <button id="previewSegBtn" class="ghost">Preview segment</button>
+              </div>
+              <div id="extractStatus" class="small" style="margin-top:8px"></div>
             </div>
-
-            <div class="controls" style="margin-top:8px">
-              <button id="extractClipBtn">Extract clip & Match voice</button>
-              <button id="previewSegBtn" class="ghost">Preview segment</button>
-            </div>
-
-            <div id="extractStatus" class="small muted" style="margin-top:8px"></div>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:center">
             <strong>Voice Maker</strong>
             <span class="small muted">Templates use <code>{label}</code> and <code>{clip:name}</code></span>
@@ -160,40 +165,41 @@
           <label style="margin-top:8px">Suggested rate</label>
           <input id="vmRate" type="number" step="0.1" min="0.5" max="2" value="1.0">
 
-          <div style="margin-top:8px; display:flex; gap:8px">
+          <div style="display:flex;gap:8px;margin-top:10px">
             <button id="vmSave">Save script</button>
             <button id="vmNew" class="ghost">New</button>
             <button id="vmDelete" class="secondary">Delete</button>
           </div>
-
-          <div style="margin-top:12px" class="small muted">When you extract a clip, the app will suggest pitch & rate; save them with a script so TTS segments use those settings.</div>
         </div>
       </div>
     </div>
 
     <footer>
-      <div class="small muted">All processing is client-side. If extraction fails on Safari, use the audio upload fallback.</div>
+      <div class="small muted">Improved stability: the app avoids blocking the UI and provides a safe audio-upload fallback for Safari. Clips & data are stored locally in your browser.</div>
     </footer>
   </div>
 
 <script>
-/* Safari-focused robust implementation
-   - Ensure user taps "Enable audio" to allow speech on Safari (user gesture)
-   - Robust voice loading + speakText (waits for voices and doesn't cancel)
-   - If captureStream/MediaRecorder unavailable, show audio-file fallback
-   - Auto-guess loop waits for audio enabled before speaking
+/*
+  Stable, Safari-friendly implementation:
+  - Avoids captureStream/MediaRecorder path that caused freezes.
+  - Primary voice input: audio upload (recommended). If a video is uploaded, we try to decode audio from the file's bytes (best-effort).
+  - decodeAudioData used carefully with async flows and cancellation tokens to avoid freezing the UI.
+  - Better UI states and clear error handling.
+  - Robust TTS: user must click "Enable audio" once (Safari gesture); wait for voices to load.
+  - Auto-guess loop that cycles through shuffled candidates and waits between 2-5s (configurable).
 */
 
-// Storage keys & defaults
-const SCRIPTS_KEY = 'funny_safari_scripts_v1';
-const CLIPS_KEY = 'funny_safari_clips_v1';
-const DATASET_KEY = 'funny_safari_dataset_v1';
-const POINTS_KEY = 'funny_safari_points_v1';
+// ---------- Storage helpers ----------
+const SCRIPTS_KEY = 'funnyai_scripts_stable_v1';
+const CLIPS_KEY = 'funnyai_clips_stable_v1';
+const DATASET_KEY = 'funnyai_dataset_stable_v1';
+const POINTS_KEY = 'funnyai_points_stable_v1';
 
 function defaultScripts(){
   return {
     "Shy": { templates: ["Um... I think this might be {label}."], pitch:1.0, rate:1.0 },
-    "Sarcastic": { templates: ["{label}? Yeah, right. Maybe."], pitch:1.0, rate:0.95 },
+    "Sarcastic": { templates: ["Oh sure, definitely {label}... or not."], pitch:1.0, rate:0.95 },
     "Confident": { templates: ["I'm pretty sure this is {label}."], pitch:1.0, rate:1.1 }
   };
 }
@@ -205,106 +211,88 @@ function loadDataset(){ try { return JSON.parse(localStorage.getItem(DATASET_KEY
 function saveDataset(d){ localStorage.setItem(DATASET_KEY, JSON.stringify(d)); }
 function loadPoints(){ return parseInt(localStorage.getItem(POINTS_KEY) || '0', 10); }
 function savePoints(n){ localStorage.setItem(POINTS_KEY, String(n)); updatePointsBadge(); }
-function updatePointsBadge(){ document.getElementById('pointsBadge').textContent = 'Points: ' + loadPoints(); }
+function updatePointsBadge(){ document.getElementById('pointsBadge').textContent = loadPoints(); }
 
-// Model
+// ---------- Model ----------
 let net = null;
 async function loadModel(){
-  document.getElementById('modelStatus').textContent = 'Loading MobileNet model (from CDN)...';
+  document.getElementById('modelStatus').textContent = 'Loading MobileNet model...';
   try {
     net = await mobilenet.load({version:2, alpha:1.0});
     document.getElementById('modelStatus').textContent = 'Model loaded.';
-  } catch(e) {
+  } catch(e){
     document.getElementById('modelStatus').textContent = 'Model failed to load: ' + (e.message || e);
+    console.error('MobileNet load error', e);
   }
 }
 
-// Voice system: robust loading for Safari
+// ---------- Voice / TTS (Safari-friendly) ----------
 let AVAILABLE_VOICES = [];
 let VOICES_READY = false;
-let audioEnabled = false; // user must click enableAudioBtn
+let audioEnabled = false; // user must press Enable audio
 
-function ensureVoicesLoaded(timeoutMs = 1500) {
+function ensureVoicesLoaded(timeoutMs = 1500){
   return new Promise((resolve) => {
     const v = window.speechSynthesis.getVoices();
-    if (v && v.length) {
-      AVAILABLE_VOICES = v;
-      VOICES_READY = true;
-      return resolve(v);
-    }
-    const onvoices = () => {
-      const vv = window.speechSynthesis.getVoices();
-      AVAILABLE_VOICES = vv;
-      VOICES_READY = true;
-      window.speechSynthesis.removeEventListener('voiceschanged', onvoices);
-      resolve(vv);
-    };
+    if(v && v.length){ AVAILABLE_VOICES = v; VOICES_READY = true; return resolve(v); }
+    const onvoices = () => { const vv = window.speechSynthesis.getVoices(); AVAILABLE_VOICES = vv; VOICES_READY = true; window.speechSynthesis.removeEventListener('voiceschanged', onvoices); resolve(vv); };
     window.speechSynthesis.addEventListener('voiceschanged', onvoices);
-    setTimeout(() => {
-      const vv = window.speechSynthesis.getVoices() || [];
-      AVAILABLE_VOICES = vv;
-      VOICES_READY = AVAILABLE_VOICES.length > 0;
-      window.speechSynthesis.removeEventListener('voiceschanged', onvoices);
-      resolve(AVAILABLE_VOICES);
-    }, timeoutMs);
+    setTimeout(()=> { const vv = window.speechSynthesis.getVoices() || []; AVAILABLE_VOICES = vv; VOICES_READY = AVAILABLE_VOICES.length>0; window.speechSynthesis.removeEventListener('voiceschanged', onvoices); resolve(AVAILABLE_VOICES); }, timeoutMs);
   });
 }
 
-function pickVoiceIndex(preferredIndex = null) {
-  if (preferredIndex !== null && !isNaN(preferredIndex) && AVAILABLE_VOICES[preferredIndex]) return preferredIndex;
-  for (let i = 0; i < AVAILABLE_VOICES.length; i++) {
+function pickVoiceIndex(preferredIndex = null){
+  if(preferredIndex !== null && !isNaN(preferredIndex) && AVAILABLE_VOICES[preferredIndex]) return preferredIndex;
+  for(let i=0;i<AVAILABLE_VOICES.length;i++){
     const v = AVAILABLE_VOICES[i];
-    if (/en/i.test(v.lang) || /english/i.test(v.name)) return i;
+    if(/en/i.test(v.lang) || /english/i.test(v.name)) return i;
   }
   return AVAILABLE_VOICES.length ? 0 : null;
 }
 
-async function speakText(text, rate = 1.0, pitch = 1.0, preferredVoiceIndex = null) {
-  if (!audioEnabled) {
-    console.warn('Audio not enabled by user gesture; speak suppressed (Safari requires user gesture).');
-    return;
-  }
-  if (!('speechSynthesis' in window)) {
-    console.warn('No speechSynthesis available');
-    return;
-  }
+async function speakText(text, rate=1.0, pitch=1.0, preferredVoiceIndex=null){
+  if(!audioEnabled){ console.warn('Audio not enabled.'); return; }
+  if(!('speechSynthesis' in window)){ console.warn('No speechSynthesis'); return; }
   await ensureVoicesLoaded();
   return new Promise((resolve) => {
     try {
-      const utter = new SpeechSynthesisUtterance(String(text));
-      utter.rate = Number.isFinite(rate) ? rate : 1.0;
-      utter.pitch = Number.isFinite(pitch) ? pitch : 1.0;
+      const u = new SpeechSynthesisUtterance(String(text));
+      u.rate = Number.isFinite(rate) ? rate : 1.0;
+      u.pitch = Number.isFinite(pitch) ? pitch : 1.0;
       const idx = pickVoiceIndex(preferredVoiceIndex);
-      if (idx !== null && AVAILABLE_VOICES[idx]) utter.voice = AVAILABLE_VOICES[idx];
-      utter.onend = () => resolve();
-      utter.onerror = () => resolve();
-      // speak (do not cancel global synthesis — sequential behavior is handled by awaiting)
-      window.speechSynthesis.speak(utter);
-    } catch (err) {
-      console.warn('speakText failed', err);
-      resolve();
+      if(idx !== null && AVAILABLE_VOICES[idx]) u.voice = AVAILABLE_VOICES[idx];
+      u.onend = () => resolve();
+      u.onerror = () => resolve();
+      window.speechSynthesis.speak(u);
+    } catch(err){
+      console.warn('speakText error', err); resolve();
     }
   });
 }
 
-// Playback utilities
-function playClipDataUrl(dataUrl){ return new Promise(res => { const audio = new Audio(dataUrl); audio.onended = ()=>res(); audio.onerror = ()=>res(); audio.play().catch(()=>res()); }); }
+// ---------- Playback helpers ----------
+function playClipDataUrl(dataUrl){
+  return new Promise(resolve => {
+    const a = new Audio(dataUrl);
+    a.onended = () => resolve();
+    a.onerror = () => resolve();
+    a.play().catch(()=>resolve());
+  });
+}
 
 function buildSequenceFromTemplate(template, label){
-  const seq = []; const clipRegex = /\{clip:([^}]+)\}/g;
-  let lastIndex = 0; let m;
-  while((m = clipRegex.exec(template)) !== null){
+  const seq = []; const rx = /\{clip:([^}]+)\}/g;
+  let lastIndex = 0, m;
+  while((m = rx.exec(template)) !== null){
     const before = template.slice(lastIndex, m.index);
     if(before.trim()) seq.push({type:'tts', text: before.replace(/\{label\}/g, label)});
-    const clipName = m[1].trim();
-    seq.push({type:'clip', clip: clipName});
+    seq.push({type:'clip', clip: m[1].trim()});
     lastIndex = m.index + m[0].length;
   }
   const tail = template.slice(lastIndex);
   if(tail.trim()) seq.push({type:'tts', text: tail.replace(/\{label\}/g, label)});
   return seq;
 }
-
 async function playSequence(seq, rate=1.0, pitch=1.0){
   for(const item of seq){
     if(item.type === 'clip'){
@@ -320,10 +308,64 @@ async function playSequence(seq, rate=1.0, pitch=1.0){
   }
 }
 
-// small "funny badness"
+// ---------- Pitch estimator (fast heuristic) ----------
+async function estimatePitchFromAudioBuffer(audioBuffer){
+  try {
+    const fs = audioBuffer.sampleRate;
+    const channel = audioBuffer.getChannelData(0);
+    const N = Math.min(channel.length, fs); // first second
+    const buf = channel.subarray(0, N);
+    let bestOffset = -1, bestVal = 0;
+    for(let offset=20; offset<800; offset++){
+      let s = 0;
+      for(let i=0;i<N-offset;i++) s += Math.abs(buf[i] - buf[i+offset]);
+      const val = 1/(1+s);
+      if(val > bestVal){ bestVal = val; bestOffset = offset; }
+    }
+    if(bestOffset <= 0) return null;
+    return fs / bestOffset;
+  } catch(e){ console.warn('pitch estimate failed', e); return null; }
+}
+
+// ---------- File decoding helpers (video/audio) ----------
+let extractionSession = 0; // simple cancellation token for async extraction
+
+// Try to decode the audio track from an uploaded file's bytes.
+// Many browsers can decode audio from container files (mp4, webm) via decodeAudioData.
+// This is best-effort and won't freeze the UI because we run async and check session token.
+async function tryDecodeAudioFromFile(file){
+  const session = ++extractionSession;
+  const arr = await file.arrayBuffer();
+  if(session !== extractionSession) throw new Error('cancelled');
+  // Use AudioContext.decodeAudioData (async)
+  const actx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
+  try {
+    const audioBuffer = await new Promise((res, rej) => {
+      actx.decodeAudioData(arr.slice(0), decoded => res(decoded), err => rej(err));
+    });
+    if(session !== extractionSession) throw new Error('cancelled');
+    return audioBuffer;
+  } catch(err) {
+    // decodeAudioData failed (likely unsupported container). Return null to fallback to audio upload path.
+    console.warn('decodeAudioData failed', err);
+    return null;
+  }
+}
+
+// Build dataURL from a Blob asynchronously
+function blobToDataURL(blob){
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result);
+    fr.onerror = rej;
+    fr.readAsDataURL(blob);
+  });
+}
+
+// ---------- Small "funny badness" ----------
 function applySmallBadness(preds){
   const commons = ["banana","chair","shoe","cat","dog","tree","car","clock","bottle","cup","box"];
-  let labels = preds.map(p=>[p[0], p[1]]);
+  let labels = preds.map(p => [p[0], p[1]]);
   if(Math.random() < 0.35){
     const fake = commons[Math.floor(Math.random()*commons.length)];
     labels[0] = [fake, 0.10 + Math.random()*0.08];
@@ -331,180 +373,87 @@ function applySmallBadness(preds){
   } else {
     labels = labels.map(([lbl,score]) => [lbl, Math.max(0.05, score*0.5)]);
   }
-  if(Math.random() < 0.25 && labels.length > 2){
-    const tmp = labels[1]; labels[1] = labels[2]; labels[2] = tmp;
+  if(Math.random() < 0.25 && labels.length>2){
+    const t = labels[1]; labels[1] = labels[2]; labels[2] = t;
   }
   return labels;
 }
 
-// Pitch estimation (basic autocorrelation; best-effort)
-async function estimatePitchFromAudioBuffer(audioBuffer){
-  const fs = audioBuffer.sampleRate;
-  const channelData = audioBuffer.getChannelData(0);
-  const N = Math.min(channelData.length, fs);
-  const buf = channelData.subarray(0, N);
-  let bestOffset = -1;
-  let bestCorr = 0;
-  for(let offset = 20; offset < 1000; offset++){
-    let corr = 0;
-    for(let i=0; i < N - offset; i++){
-      corr += Math.abs(buf[i] - buf[i+offset]);
-    }
-    const val = 1.0 / (1 + corr);
-    if(val > bestCorr){ bestCorr = val; bestOffset = offset; }
-  }
-  if(bestOffset <= 0) return null;
-  const fundamental = fs / bestOffset;
-  return fundamental;
-}
-
-// Audio extraction paths
-async function extractAudioFromVideoSegment(videoElement, startSec, endSec){
-  // Prefer captureStream + MediaRecorder if available
-  if(videoElement.captureStream && typeof MediaRecorder !== 'undefined'){
-    // previous robust approach
-    let recorder;
-    const stream = videoElement.captureStream();
-    try { recorder = new MediaRecorder(stream, {mimeType: 'audio/webm;codecs=opus'}); } catch(e) { recorder = new MediaRecorder(stream); }
-    const chunks = [];
-    recorder.ondataavailable = ev => { if(ev.data && ev.data.size) chunks.push(ev.data); };
-    return new Promise((resolve, reject) => {
-      recorder.onstop = async () => {
-        try {
-          const blob = new Blob(chunks, {type: chunks[0]?.type || 'audio/webm'});
-          const arrayBuf = await blob.arrayBuffer();
-          let audioBuffer;
-          try {
-            audioBuffer = await new Promise((res, rej) => {
-              const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100 * 2, 44100);
-              ctx.decodeAudioData(arrayBuf, decoded => res(decoded), err => rej(err));
-            });
-          } catch(err){
-            const actx = new (window.AudioContext || window.webkitAudioContext)();
-            audioBuffer = await actx.decodeAudioData(arrayBuf);
-          }
-          const dataUrl = URL.createObjectURL(blob);
-          resolve({blob, dataUrl, audioBuffer});
-        } catch(e){ reject(e); }
-      };
-      recorder.onerror = err => reject(err);
-      const onSeeked = () => {
-        videoElement.play();
-        recorder.start();
-        const stopHandler = () => {
-          if(videoElement.currentTime >= endSec - 0.01 || videoElement.ended){
-            videoElement.pause();
-            setTimeout(()=> { try { recorder.stop(); } catch(e){} }, 150);
-            videoElement.removeEventListener('timeupdate', stopHandler);
-          }
-        };
-        videoElement.addEventListener('timeupdate', stopHandler);
-      };
-      videoElement.currentTime = Math.max(0, startSec);
-      videoElement.addEventListener('seeked', function f(){
-        videoElement.removeEventListener('seeked', f);
-        onSeeked();
-      });
-    });
-  } else {
-    // captureStream not supported: fail early and suggest audio upload fallback
-    throw new Error('Video extraction not supported in this browser. Use the audio upload fallback instead.');
-  }
-}
-
-// Decode audio file directly (used for audio fallback upload)
-async function decodeAudioFileToBuffer(file){
-  const arrayBuf = await file.arrayBuffer();
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  return await ctx.decodeAudioData(arrayBuf);
-}
-
-// UI wiring and state
-let currentImageEl = null;
-let lastPredictions = [];
+// ---------- Guess loop ----------
 let guessLoopRunning = false;
 let guessCandidates = [];
 let guessIndex = 0;
 let lastGuessed = null;
-
-function shuffleArray(a){
-  for(let i=a.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-function buildGuessCandidatesFromPreds(preds){
+function shuffleArray(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a; }
+function buildGuessCandidates(preds){
   const commons = ["banana","chair","shoe","cat","dog","tree","car","clock","bottle","cup","box"];
   const labels = preds.map(p=>p[0]);
-  let combined = labels.slice();
-  commons.forEach(c => { if(!combined.includes(c) && combined.length < Math.max(6, labels.length+3)) combined.push(c); });
-  return shuffleArray(combined);
+  const out = labels.slice();
+  commons.forEach(c => { if(!out.includes(c) && out.length < Math.max(6, labels.length+3)) out.push(c); });
+  return shuffleArray(out);
 }
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 async function startGuessLoop(){
   if(guessLoopRunning) return;
-  if(!lastPredictions || lastPredictions.length === 0){ alert('No predictions yet — upload an image first.'); return; }
-  if(!audioEnabled){ alert('Tap "Enable audio" before starting auto-guesses (Safari requires a user gesture).'); return; }
-  guessCandidates = buildGuessCandidatesFromPreds(lastPredictions);
+  if(!lastPredictions || lastPredictions.length === 0){ alert('Upload an image first.'); return; }
+  if(!audioEnabled){ alert('Tap "Enable audio" to allow speech (Safari requires a gesture).'); return; }
+  guessCandidates = buildGuessCandidates(lastPredictions);
   guessIndex = 0;
   guessLoopRunning = true;
-  document.getElementById('startLoopBtn').style.display = 'none';
-  document.getElementById('stopLoopBtn').style.display = '';
+  document.getElementById('startLoopBtn').classList.add('hidden');
+  document.getElementById('stopLoopBtn').classList.remove('hidden');
   document.getElementById('loopStatus').textContent = 'Running';
   while(guessLoopRunning){
-    if(guessIndex >= guessCandidates.length){
-      guessCandidates = shuffleArray(guessCandidates.slice());
-      guessIndex = 0;
-    }
-    let g = guessCandidates[guessIndex++];
-    if(g === lastGuessed && guessCandidates.length > 1){
-      g = guessCandidates[guessIndex++ % guessCandidates.length];
-    }
-    lastGuessed = g;
+    if(guessIndex >= guessCandidates.length){ guessCandidates = shuffleArray(guessCandidates.slice()); guessIndex = 0; }
+    let label = guessCandidates[guessIndex++];
+    if(label === lastGuessed && guessCandidates.length>1) label = guessCandidates[guessIndex++ % guessCandidates.length];
+    lastGuessed = label;
     const scriptName = document.getElementById('vmScriptList').value;
     const script = loadScripts()[scriptName] || null;
     const tpl = script ? script.templates[Math.floor(Math.random()*script.templates.length)] : 'I think this is {label}.';
-    const seq = buildSequenceFromTemplate(tpl, g);
+    const seq = buildSequenceFromTemplate(tpl, label);
     const pitch = script ? (script.pitch||1.0) : 1.0;
     const rate = script ? (script.rate||1.0) : 1.0;
     await playSequence(seq, rate, pitch);
     if(!guessLoopRunning) break;
-    // delay
     let minD = parseFloat(document.getElementById('minDelay').value) || 2;
     let maxD = parseFloat(document.getElementById('maxDelay').value) || 5;
     if(maxD < minD) { const t=minD; minD=maxD; maxD=t; }
-    const delaySec = minD + Math.random()*(maxD - minD);
+    const delay = minD + Math.random()*(maxD - minD);
     const start = Date.now();
-    while(guessLoopRunning && Date.now()-start < delaySec*1000){
-      await new Promise(r=>setTimeout(r, 200));
-    }
+    while(guessLoopRunning && Date.now() - start < delay*1000){ await sleep(200); }
   }
   guessLoopRunning = false;
-  document.getElementById('startLoopBtn').style.display = '';
-  document.getElementById('stopLoopBtn').style.display = 'none';
+  document.getElementById('startLoopBtn').classList.remove('hidden');
+  document.getElementById('stopLoopBtn').classList.add('hidden');
   document.getElementById('loopStatus').textContent = 'Stopped';
 }
 
 function stopGuessLoop(){ guessLoopRunning = false; }
 
-// UI helpers
+// ---------- UI glue ----------
+let currentImageEl = null;
+let lastPredictions = [];
+
 function renderPredictions(preds){
   const ul = document.getElementById('predList'); ul.innerHTML = '';
-  preds.forEach((p,i)=>{ const li = document.createElement('li'); li.innerHTML = `<strong>${i+1}. ${escapeHtml(String(p[0]))}</strong> — ${(p[1]*100).toFixed(1)}%`; ul.appendChild(li); });
+  preds.forEach((p,i) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${i+1}. ${escapeHtml(p[0])}</strong> — ${(p[1]*100).toFixed(1)}%`;
+    ul.appendChild(li);
+  });
 }
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 function populateUI(){
   const scripts = loadScripts();
-  const vm = document.getElementById('vmScriptList');
-  vm.innerHTML = '';
-  Object.keys(scripts).sort().forEach(name => {
-    const o = document.createElement('option'); o.value = name; o.textContent = name; vm.appendChild(o);
-  });
-  if(vm.options.length) vm.value = vm.options[0].value;
+  const sel = document.getElementById('vmScriptList');
+  sel.innerHTML = '';
+  Object.keys(scripts).sort().forEach(k => { const o = document.createElement('option'); o.value = k; o.textContent = k; sel.appendChild(o); });
+  if(sel.options.length) sel.value = sel.options[0].value;
   loadScriptEditor();
-  refreshClipList();
+  refreshClipUI();
   updatePointsBadge();
 }
 
@@ -514,109 +463,74 @@ function loadScriptEditor(){
   if(!name || !scripts[name]) return;
   const v = scripts[name];
   document.getElementById('vmName').value = name;
-  document.getElementById('vmTemplates').value = (v.templates || []).join('\n');
+  document.getElementById('vmTemplates').value = (v.templates||[]).join('\n');
   document.getElementById('vmPitch').value = v.pitch || 1.0;
   document.getElementById('vmRate').value = v.rate || 1.0;
 }
 
-function refreshClipList(){
-  const list = document.getElementById('clipList');
-  list.innerHTML = '';
+function refreshClipUI(){
+  const container = document.getElementById('clipContainer');
+  container.innerHTML = '';
   const clips = loadClips();
-  const names = Object.keys(clips).sort();
-  if(names.length === 0){ list.innerHTML = '<li class="small muted">No clips saved yet.</li>'; return; }
-  names.forEach(n=>{
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${escapeHtml(n)}</strong> — <a href="#" data-play="${n}">Play</a> <a href="#" data-del="${n}" style="color:#ef4444;margin-left:8px">Delete</a>`;
-    list.appendChild(li);
-  });
-  list.querySelectorAll('[data-play]').forEach(a=>{
-    a.addEventListener('click', ev=>{
-      ev.preventDefault();
-      const k = a.getAttribute('data-play');
-      const clips = loadClips();
-      const url = clips[k];
-      if(url){ const audio = new Audio(url); audio.play(); }
-    });
-  });
-  list.querySelectorAll('[data-del]').forEach(a=>{
-    a.addEventListener('click', ev=>{
-      ev.preventDefault();
-      const k = a.getAttribute('data-del');
-      if(!confirm('Delete clip '+k+'?')) return;
-      const clips = loadClips(); delete clips[k]; saveClips(clips); refreshClipList();
-    });
+  const keys = Object.keys(clips).sort();
+  if(keys.length === 0){ container.innerHTML = '<div class="small muted">No clips saved yet.</div>'; return; }
+  keys.forEach(k => {
+    const row = document.createElement('div'); row.className = 'clip-item';
+    const left = document.createElement('div'); left.innerHTML = `<strong>${escapeHtml(k)}</strong>`;
+    const right = document.createElement('div');
+    const play = document.createElement('a'); play.href='#'; play.textContent='Play'; play.addEventListener('click', (e)=>{ e.preventDefault(); new Audio(clips[k]).play();});
+    const del = document.createElement('a'); del.href='#'; del.textContent='Delete'; del.style.color='#ef4444'; del.style.marginLeft='10px';
+    del.addEventListener('click', (e)=>{ e.preventDefault(); if(!confirm('Delete clip '+k+'?')) return; const c = loadClips(); delete c[k]; saveClips(c); refreshClipUI(); });
+    right.appendChild(play); right.appendChild(del);
+    row.appendChild(left); row.appendChild(right);
+    container.appendChild(row);
   });
 }
 
-// DOM events & wiring
+// ---------- Event wiring ----------
 document.addEventListener('DOMContentLoaded', async ()=>{
   if(!localStorage.getItem(SCRIPTS_KEY)) saveScripts(defaultScripts());
   populateUI();
   loadModel();
 
-  // Audio enable (Safari gesture)
+  // Enable audio button
   document.getElementById('enableAudioBtn').addEventListener('click', async ()=>{
-    // mark enabled and attempt to load voices and speak a short confirmation
     audioEnabled = true;
     document.getElementById('audioStatus').textContent = 'Audio: enabled';
     await ensureVoicesLoaded(2000);
-    // Play a short confirmation phrase (user gesture now satisfied)
-    try { await speakText('Audio enabled', 1.0, 1.0); } catch(e){ console.warn(e); }
+    try { await speakText('Audio enabled', 1.0, 1.0); } catch(e) { console.warn(e); }
   });
 
-  // Video/audio fallback detection
-  const supportsCapture = !!HTMLVideoElement.prototype.captureStream && typeof MediaRecorder !== 'undefined';
-  if(!supportsCapture){
-    document.getElementById('audioFallbackArea').classList.remove('hidden');
-    document.getElementById('extractStatus').textContent = 'Video extraction not supported — use audio upload.';
-  }
-
-  // Image input
+  // IMAGE upload
   document.getElementById('pickImageBtn').addEventListener('click', ()=> document.getElementById('imageInput').click());
   document.getElementById('imageInput').addEventListener('change', async (ev)=>{
     const f = ev.target.files && ev.target.files[0]; if(!f) return;
     try {
-      const imgEl = await new Promise((res,rej)=>{
-        const url = URL.createObjectURL(f);
-        const img = new Image();
-        img.onload = ()=>{ URL.revokeObjectURL(url); res(img); };
-        img.onerror = rej;
-        img.src = url;
-      });
-      currentImageEl = imgEl;
-      document.getElementById('imagePreview').src = imgEl.src;
-      document.getElementById('imagePreview').classList.remove('hidden');
-      // stop loop if running
+      const url = URL.createObjectURL(f);
+      const img = new Image();
+      img.src = url;
+      await new Promise((res,rej)=>{ img.onload = res; img.onerror = rej; });
+      currentImageEl = img;
+      const ip = document.getElementById('imagePreview'); ip.src = img.src; ip.classList.remove('hidden');
       if(guessLoopRunning) stopGuessLoop();
-      // classify with model (ensure loaded)
       if(!net) await loadModel();
       document.getElementById('modelStatus').textContent = 'Classifying...';
-      const raw = await net.classify(imgEl, 3);
+      const raw = await net.classify(img, 5);
       const preds = raw.map(r => [r.className, r.probability]);
       lastPredictions = applySmallBadness(preds);
       renderPredictions(lastPredictions);
       document.getElementById('predictionsArea').classList.remove('hidden');
       document.getElementById('modelStatus').textContent = 'Ready';
-      // auto speak one time if user enabled audio and toggle could be used (we keep previous auto behavior off to avoid surprises)
-      if(audioEnabled && document.getElementById('autoSpeakToggle') && document.getElementById('autoSpeakToggle').checked){
-        const scriptName = document.getElementById('vmScriptList').value;
-        const script = loadScripts()[scriptName] || null;
-        const tpl = script ? script.templates[Math.floor(Math.random()*script.templates.length)] : 'I think this is {label}.';
-        const seq = buildSequenceFromTemplate(tpl, lastPredictions[0] ? lastPredictions[0][0] : 'something');
-        const pitch = script ? (script.pitch||1.0) : 1.0;
-        const rate = script ? (script.rate||1.0) : 1.0;
-        await playSequence(seq, rate, pitch);
-      }
     } catch(err){
+      console.error('image load/classify', err);
       alert('Image load/classify failed: ' + (err.message || err));
     }
   });
 
-  // Manual speak
+  // SPEAK top button
   document.getElementById('speakBtn').addEventListener('click', async ()=>{
     if(!lastPredictions || !lastPredictions[0]){ alert('No prediction'); return; }
-    if(!audioEnabled){ alert('Tap "Enable audio" to allow speech in this browser.'); return; }
+    if(!audioEnabled){ alert('Tap "Enable audio" to allow speech (Safari needs a gesture).'); return; }
     const top = lastPredictions[0][0];
     const scriptName = document.getElementById('vmScriptList').value;
     const script = loadScripts()[scriptName] || null;
@@ -627,119 +541,86 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     await playSequence(seq, rate, pitch);
   });
 
-  // Loop controls
-  document.getElementById('startLoopBtn').addEventListener('click', async ()=>{
-    if(!audioEnabled){ alert('Tap "Enable audio" first (Safari requires a user gesture).'); return; }
-    startGuessLoop();
-  });
-  document.getElementById('stopLoopBtn').addEventListener('click', ()=> stopGuessLoop());
-
-  // Correct/Incorrect/save label
-  document.getElementById('correctBtn').addEventListener('click', ()=>{ savePoints(loadPoints()+1); alert('Point awarded! Total: ' + loadPoints()); });
-  document.getElementById('incorrectBtn').addEventListener('click', ()=>{ document.getElementById('labelSaveArea').classList.remove('hidden'); });
-  document.getElementById('cancelSaveBtn').addEventListener('click', ()=>{ document.getElementById('labelSaveArea').classList.add('hidden'); document.getElementById('correctLabelInput').value=''; });
-  document.getElementById('saveLabelBtn').addEventListener('click', ()=> {
+  // Correct / incorrect / save label
+  document.getElementById('correctBtn').addEventListener('click', ()=>{ savePoints(loadPoints()+1); alert('Point awarded!'); });
+  document.getElementById('incorrectBtn').addEventListener('click', ()=> document.getElementById('labelSaveArea').classList.remove('hidden'));
+  document.getElementById('cancelSaveBtn').addEventListener('click', ()=> { document.getElementById('labelSaveArea').classList.add('hidden'); document.getElementById('correctLabelInput').value=''; });
+  document.getElementById('saveLabelBtn').addEventListener('click', ()=>{
     const label = (document.getElementById('correctLabelInput').value||'').trim();
     if(!label){ alert('Enter label'); return; }
     if(!currentImageEl){ alert('No image'); return; }
     const canvas = document.createElement('canvas'); canvas.width = currentImageEl.naturalWidth; canvas.height = currentImageEl.naturalHeight;
     const ctx = canvas.getContext('2d'); ctx.drawImage(currentImageEl, 0, 0);
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-    const ds = loadDataset();
-    if(!ds[label]) ds[label] = [];
-    ds[label].push({data: dataUrl, t: Date.now()});
-    saveDataset(ds);
-    alert('Saved labeled image under: ' + label);
-    document.getElementById('labelSaveArea').classList.add('hidden');
-    document.getElementById('correctLabelInput').value = '';
+    const ds = loadDataset(); if(!ds[label]) ds[label]=[]; ds[label].push({data: dataUrl, t: Date.now()}); saveDataset(ds);
+    alert('Saved labeled image under: ' + label); document.getElementById('labelSaveArea').classList.add('hidden'); document.getElementById('correctLabelInput').value='';
   });
 
-  // Video preview + extraction
-  const videoInput = document.getElementById('videoInput');
-  const videoPlayer = document.getElementById('videoPlayer');
-  videoInput.addEventListener('change', (ev)=>{
-    const f = ev.target.files && ev.target.files[0]; if(!f) return;
-    videoPlayer.src = URL.createObjectURL(f);
-    videoPlayer.style.display = 'block';
-    document.getElementById('extractStatus').textContent = 'Video loaded. Choose start/end and click Extract.';
-  });
+  // LOOP controls
+  document.getElementById('startLoopBtn').addEventListener('click', startGuessLoop);
+  document.getElementById('stopLoopBtn').addEventListener('click', stopGuessLoop);
 
-  // Audio fallback upload handling
+  // AUDIO fallback upload decoding
   document.getElementById('audioInput').addEventListener('change', async (ev)=>{
     const f = ev.target.files && ev.target.files[0]; if(!f) return;
     try {
       document.getElementById('extractStatus').textContent = 'Decoding audio...';
-      const audioBuffer = await decodeAudioFileToBuffer(f);
-      // create blob URL for playback: convert file to dataURL
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const dataUrl = e.target.result;
-        const name = 'audio_clip_' + Date.now();
-        const clips = loadClips(); clips[name] = dataUrl; saveClips(clips);
-        refreshClipList();
-        // estimate pitch
-        let pitchHz = null;
-        try { pitchHz = await estimatePitchFromAudioBuffer(audioBuffer); } catch(e){ console.warn(e); }
-        let suggestedPitch = 1.0, suggestedRate = 1.0;
-        if(pitchHz && pitchHz>0){
-          const p = Math.max(80, Math.min(400, pitchHz));
-          const norm = (p - 100) / (300 - 100);
-          suggestedPitch = 0.8 + Math.max(0, Math.min(1, norm)) * 0.7;
-          suggestedRate = 0.9 + Math.max(0, Math.min(1, norm)) * 0.3;
-        }
-        document.getElementById('vmPitch').value = (Math.round(suggestedPitch*10)/10).toFixed(1);
-        document.getElementById('vmRate').value = (Math.round(suggestedRate*10)/10).toFixed(1);
-        document.getElementById('extractStatus').textContent = `Saved clip "${name}". Suggested pitch=${document.getElementById('vmPitch').value}, rate=${document.getElementById('vmRate').value}.`;
-        const scripts = loadScripts();
-        if(!scripts['VideoVoice']){ scripts['VideoVoice'] = { templates: [`{clip:${name}} I think this is {label}.`], pitch: suggestedPitch, rate: suggestedRate }; saveScripts(scripts); populateUI(); }
-      };
-      reader.readAsDataURL(f);
-    } catch(err){
-      console.error(err);
-      document.getElementById('extractStatus').textContent = 'Audio decode failed.';
-      alert('Audio decode failed: ' + (err.message || err));
-    }
-  });
-
-  // preview segment
-  document.getElementById('previewSegBtn').addEventListener('click', ()=>{
-    const s = parseFloat(document.getElementById('segStart').value || 0);
-    const e = parseFloat(document.getElementById('segEnd').value || 0);
-    if(!videoPlayer.src){ alert('No video loaded'); return; }
-    if(isNaN(s) || isNaN(e) || e<=s){ alert('Invalid times'); return; }
-    videoPlayer.currentTime = s;
-    videoPlayer.play();
-    const stopFn = ()=> { if(videoPlayer.currentTime >= e - 0.05){ videoPlayer.pause(); videoPlayer.removeEventListener('timeupdate', stopFn); } };
-    videoPlayer.addEventListener('timeupdate', stopFn);
-  });
-
-  // extract (video capture path or fallback)
-  document.getElementById('extractClipBtn').addEventListener('click', async ()=>{
-    try {
-      const s = parseFloat(document.getElementById('segStart').value || 0);
-      const e = parseFloat(document.getElementById('segEnd').value || 0);
-      if(!videoPlayer.src && !document.getElementById('audioInput').files.length){ alert('Load a video or audio file first'); return; }
-      if(isNaN(s) || isNaN(e) || e<=s){ alert('Invalid start/end'); return; }
-      document.getElementById('extractStatus').textContent = 'Extracting audio...';
-      let res;
-      try {
-        res = await extractAudioFromVideoSegment(videoPlayer, s, e);
-      } catch(err){
-        // extraction failed (likely Safari): instruct user to upload audio file as fallback
-        document.getElementById('extractStatus').textContent = 'Video extraction unsupported — use audio upload.';
-        alert('Video extraction not supported in this browser. Upload a short audio clip in “Audio fallback” to use as the voice clip.');
-        return;
-      }
-      const name = 'video_clip_' + Date.now();
-      const clips = loadClips(); clips[name] = res.dataUrl; saveClips(clips); refreshClipList();
-      let pitchHz = null;
-      try { pitchHz = await estimatePitchFromAudioBuffer(res.audioBuffer); } catch(e){ console.warn(e); }
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const array = await f.arrayBuffer();
+      const audioBuffer = await actx.decodeAudioData(array.slice(0));
+      // convert file to dataURL for storage/playing
+      const dataUrl = await blobToDataURL(new Blob([array], {type: f.type || 'audio/mpeg'}));
+      const name = 'audio_' + Date.now();
+      const clips = loadClips(); clips[name] = dataUrl; saveClips(clips); refreshClipUI();
+      // pitch estimate
+      const pitchHz = await estimatePitchFromAudioBuffer(audioBuffer);
       let suggestedPitch = 1.0, suggestedRate = 1.0;
       if(pitchHz && pitchHz>0){
         const p = Math.max(80, Math.min(400, pitchHz));
         const norm = (p - 100) / (300 - 100);
-        suggestedPitch = 0.8 + Math.max(0, Math.min(1, norm)) * 0.7;
-        suggestedRate = 0.9 + Math.max(0, Math.min(1, norm)) * 0.3;
+        suggestedPitch = 0.8 + Math.max(0, Math.min(1, norm))*0.7;
+        suggestedRate = 0.9 + Math.max(0, Math.min(1, norm))*0.3;
+      }
+      document.getElementById('vmPitch').value = (Math.round(suggestedPitch*10)/10).toFixed(1);
+      document.getElementById('vmRate').value = (Math.round(suggestedRate*10)/10).toFixed(1);
+      document.getElementById('extractStatus').textContent = `Saved clip "${name}". Suggested pitch=${document.getElementById('vmPitch').value}, rate=${document.getElementById('vmRate').value}.`;
+      // auto-add a VideoVoice script skeleton if missing
+      const scripts = loadScripts();
+      if(!scripts['VideoVoice']){ scripts['VideoVoice'] = { templates: [`{clip:${name}} I think this is {label}.`], pitch: suggestedPitch, rate: suggestedRate }; saveScripts(scripts); populateUI(); }
+    } catch(err){
+      console.error('audio decode failed', err); document.getElementById('extractStatus').textContent = 'Audio decode failed'; alert('Audio decode failed: ' + (err.message || err));
+    }
+  });
+
+  // VIDEO upload: attempt decode from bytes (best-effort)
+  document.getElementById('videoInput').addEventListener('change', async (ev)=>{
+    const f = ev.target.files && ev.target.files[0]; if(!f) return;
+    const videoPlayer = document.getElementById('videoPlayer');
+    videoPlayer.src = URL.createObjectURL(f);
+    videoPlayer.classList.remove('hidden');
+    // try to decode audio track from file bytes (best-effort)
+    document.getElementById('extractStatus').textContent = 'Attempting to decode audio from video (best-effort)...';
+    extractionSession++;
+    const session = extractionSession;
+    try {
+      const audioBuffer = await tryDecodeAudioFromFile(f);
+      if(session !== extractionSession) return; // cancelled
+      if(!audioBuffer){
+        document.getElementById('extractStatus').textContent = 'Automatic extraction not available for this file — try uploading audio instead.';
+        return;
+      }
+      // Convert audioBuffer to WAV blob for playback and save
+      const wavBlob = audioBufferToWavBlob(audioBuffer);
+      const dataUrl = await blobToDataURL(wavBlob);
+      const name = 'video_audio_' + Date.now();
+      const clips = loadClips(); clips[name] = dataUrl; saveClips(clips); refreshClipUI();
+      const pitchHz = await estimatePitchFromAudioBuffer(audioBuffer);
+      let suggestedPitch = 1.0, suggestedRate = 1.0;
+      if(pitchHz && pitchHz>0){
+        const p = Math.max(80, Math.min(400, pitchHz));
+        const norm = (p - 100) / (300 - 100);
+        suggestedPitch = 0.8 + Math.max(0, Math.min(1, norm))*0.7;
+        suggestedRate = 0.9 + Math.max(0, Math.min(1, norm))*0.3;
       }
       document.getElementById('vmPitch').value = (Math.round(suggestedPitch*10)/10).toFixed(1);
       document.getElementById('vmRate').value = (Math.round(suggestedRate*10)/10).toFixed(1);
@@ -747,9 +628,76 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       const scripts = loadScripts();
       if(!scripts['VideoVoice']){ scripts['VideoVoice'] = { templates: [`{clip:${name}} I think this is {label}.`], pitch: suggestedPitch, rate: suggestedRate }; saveScripts(scripts); populateUI(); }
     } catch(err){
-      console.error(err);
+      console.error('video audio extraction error', err);
+      document.getElementById('extractStatus').textContent = 'Extraction failed — try uploading audio.';
+      alert('Video audio extraction failed: ' + (err.message || err));
+    }
+  });
+
+  // Preview segment (for video playback)
+  document.getElementById('previewSegBtn').addEventListener('click', ()=>{
+    const start = parseFloat(document.getElementById('segStart').value || 0);
+    const end = parseFloat(document.getElementById('segEnd').value || 0);
+    const videoPlayer = document.getElementById('videoPlayer');
+    if(!videoPlayer.src){ alert('No video loaded'); return; }
+    if(isNaN(start) || isNaN(end) || end <= start){ alert('Invalid times'); return; }
+    videoPlayer.currentTime = start;
+    videoPlayer.play();
+    const stopFn = ()=> { if(videoPlayer.currentTime >= end - 0.05){ videoPlayer.pause(); videoPlayer.removeEventListener('timeupdate', stopFn); } };
+    videoPlayer.addEventListener('timeupdate', stopFn);
+  });
+
+  // Extract clip (attempt decode from loaded video segment by decoding whole file then slicing)
+  document.getElementById('extractClipBtn').addEventListener('click', async ()=>{
+    const start = parseFloat(document.getElementById('segStart').value || 0);
+    const end = parseFloat(document.getElementById('segEnd').value || 0);
+    const videoPlayer = document.getElementById('videoPlayer');
+    if(!videoPlayer.src && !document.getElementById('audioInput').files.length){ alert('Load a video or audio first'); return; }
+    if(isNaN(start) || isNaN(end) || end <= start){ alert('Invalid start/end'); return; }
+    document.getElementById('extractStatus').textContent = 'Extracting...';
+    try {
+      // If user provided an audio file, prefer that path (we already converted audioInput->clip on change)
+      if(document.getElementById('audioInput').files.length){
+        document.getElementById('extractStatus').textContent = 'Audio file already uploaded. Use clips in Voice Maker.';
+        return;
+      }
+      // Attempt to decode audio from video file (we already set video.src earlier)
+      const input = document.getElementById('videoInput');
+      const file = input.files && input.files[0];
+      if(!file){ alert('No video file loaded'); return; }
+      const audioBuffer = await tryDecodeAudioFromFile(file);
+      if(!audioBuffer){ document.getElementById('extractStatus').textContent = 'Could not decode audio from file — try uploading audio directly.'; return; }
+      // Slice audioBuffer between start/end seconds
+      const sr = audioBuffer.sampleRate;
+      const sSample = Math.max(0, Math.floor(start * sr));
+      const eSample = Math.min(audioBuffer.length, Math.floor(end * sr));
+      const len = Math.max(0, eSample - sSample);
+      const newBuf = new (window.AudioContext || window.webkitAudioContext)().createBuffer(audioBuffer.numberOfChannels, len, sr);
+      for(let ch=0; ch<audioBuffer.numberOfChannels; ch++){
+        const src = audioBuffer.getChannelData(ch).subarray(sSample, eSample);
+        newBuf.copyToChannel(src, ch, 0);
+      }
+      const wavBlob = audioBufferToWavBlob(newBuf);
+      const dataUrl = await blobToDataURL(wavBlob);
+      const name = 'extracted_' + Date.now();
+      const clips = loadClips(); clips[name] = dataUrl; saveClips(clips); refreshClipUI();
+      const pitchHz = await estimatePitchFromAudioBuffer(newBuf);
+      let suggestedPitch = 1.0, suggestedRate = 1.0;
+      if(pitchHz && pitchHz>0){
+        const p = Math.max(80, Math.min(400, pitchHz));
+        const norm = (p - 100) / (300 - 100);
+        suggestedPitch = 0.8 + Math.max(0, Math.min(1, norm))*0.7;
+        suggestedRate = 0.9 + Math.max(0, Math.min(1, norm))*0.3;
+      }
+      document.getElementById('vmPitch').value = (Math.round(suggestedPitch*10)/10).toFixed(1);
+      document.getElementById('vmRate').value = (Math.round(suggestedRate*10)/10).toFixed(1);
+      document.getElementById('extractStatus').textContent = `Saved clip "${name}". Suggested pitch=${document.getElementById('vmPitch').value}, rate=${document.getElementById('vmRate').value}.`;
+      const scripts = loadScripts();
+      if(!scripts['VideoVoice']){ scripts['VideoVoice'] = { templates: [`{clip:${name}} I think this is {label}.`], pitch: suggestedPitch, rate: suggestedRate }; saveScripts(scripts); populateUI(); }
+    } catch(err){
+      console.error('extract failed', err);
+      document.getElementById('extractStatus').textContent = 'Extraction failed — use audio upload.';
       alert('Extraction failed: ' + (err.message || err));
-      document.getElementById('extractStatus').textContent = 'Extraction failed.';
     }
   });
 
@@ -758,8 +706,8 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('vmSave').addEventListener('click', ()=>{
     const name = (document.getElementById('vmName').value||'').trim();
     if(!name){ alert('Provide name'); return; }
-    const templates = (document.getElementById('vmTemplates').value || '').split('\n').map(s=>s.trim()).filter(Boolean);
-    if(templates.length === 0){ alert('Add at least one template line'); return; }
+    const templates = (document.getElementById('vmTemplates').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    if(templates.length===0){ alert('Add at least one template'); return; }
     const pitch = parseFloat(document.getElementById('vmPitch').value) || 1.0;
     const rate = parseFloat(document.getElementById('vmRate').value) || 1.0;
     const scripts = loadScripts(); scripts[name] = { templates, pitch, rate }; saveScripts(scripts); populateUI(); alert('Saved script: ' + name);
@@ -767,9 +715,54 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('vmNew').addEventListener('click', ()=>{ document.getElementById('vmName').value='NewScript'; document.getElementById('vmTemplates').value='I think this is {label}.'; document.getElementById('vmPitch').value='1.0'; document.getElementById('vmRate').value='1.0'; });
   document.getElementById('vmDelete').addEventListener('click', ()=>{ const name=(document.getElementById('vmScriptList').value||'').trim(); if(!name) return; if(!confirm('Delete script "'+name+'"?')) return; const scripts = loadScripts(); delete scripts[name]; saveScripts(scripts); populateUI(); alert('Deleted ' + name); });
 
-  // initial populate
   populateUI();
 });
+
+// ---------- Utility: convert AudioBuffer -> WAV Blob ----------
+function audioBufferToWavBlob(buffer){
+  // mono or stereo supported
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const length = buffer.length * numChannels * 2 + 44;
+  const bufferArray = new ArrayBuffer(length);
+  const view = new DataView(bufferArray);
+  /* RIFF header */
+  function writeString(view, offset, string){
+    for(let i=0;i<string.length;i++) view.setUint8(offset + i, string.charCodeAt(i));
+  }
+  let offset = 0;
+  writeString(view, offset, 'RIFF'); offset += 4;
+  view.setUint32(offset, 36 + buffer.length * numChannels * 2, true); offset += 4;
+  writeString(view, offset, 'WAVE'); offset += 4;
+  writeString(view, offset, 'fmt '); offset += 4;
+  view.setUint32(offset, 16, true); offset += 4;
+  view.setUint16(offset, 1, true); offset += 2; // PCM
+  view.setUint16(offset, numChannels, true); offset += 2;
+  view.setUint32(offset, sampleRate, true); offset += 4;
+  view.setUint32(offset, sampleRate * numChannels * 2, true); offset += 4;
+  view.setUint16(offset, numChannels * 2, true); offset += 2;
+  view.setUint16(offset, 16, true); offset += 2;
+  writeString(view, offset, 'data'); offset += 4;
+  view.setUint32(offset, buffer.length * numChannels * 2, true); offset += 4;
+  // write interleaved audio data
+  const interleaved = new Int16Array(buffer.length * numChannels);
+  let idx = 0;
+  for(let i=0;i<buffer.length;i++){
+    for(let ch=0; ch<numChannels; ch++){
+      const sample = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]));
+      interleaved[idx++] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+    }
+  }
+  for(let i=0;i<interleaved.length;i++){
+    view.setInt16(offset, interleaved[i], true);
+    offset += 2;
+  }
+  return new Blob([view], {type: 'audio/wav'});
+}
+
+// ---------- Small helpers used above ----------
+function blobToDataURL(blob){ return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = ()=>res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); }); }
+
 </script>
 </body>
 </html>
